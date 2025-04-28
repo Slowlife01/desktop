@@ -8,11 +8,21 @@
   perspective: 1000px;
   transform-style: preserve-3d;
   transition: gap 0.3s ease-out;
-  height: 70px;
+  height: 40px;
 
   &.hover {
-    gap: 100px;
-    transform: translateY(-94px);
+    > * {
+      margin-top: 100px;
+    }
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :nth-last-child(2) {
+      margin-bottom: calc(var(--length) * 100px);
+    }
+
     .show-on-hover {
       max-height: 50px;
       padding: 5px;
@@ -164,7 +174,7 @@
     }
   }
 
-  transform: translateZ(calc(var(--index) * -90px)) translateY(calc(var(--index) * 20px));
+  transform: translateZ(calc(var(--index) * -100px)) translateY(calc(var(--index) * 10px));
   transition:
     transform 0.3s ease-out,
     opacity 0.3s ease-out;
