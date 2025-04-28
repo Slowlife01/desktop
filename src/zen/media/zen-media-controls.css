@@ -4,11 +4,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#zen-media-controls-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: gap 0.3s ease-out;
+  height: 70px;
+
+  &.hover {
+    gap: 100px;
+    transform: translateY(-94px);
+    .show-on-hover {
+      max-height: 50px;
+      padding: 5px;
+      margin-bottom: 0;
+      opacity: 1;
+      transform: translateY(0) !important;
+      pointer-events: auto;
+    }
+
+    .zen-sidebar-toolbar {
+      transform: unset !important;
+      opacity: 1 !important;
+
+      #zen-media-controls-hbox {
+        opacity: 1 !important;
+      }
+    }
+  }
+}
+
 #zen-media-controls-toolbar {
   --progress-height: 4px;
   --button-spacing: 2px;
 
-  display: flex;
+  display: none;
   justify-content: space-between;
   min-width: 0;
   background: transparent;
@@ -99,21 +128,6 @@
     }
   }
 
-  &:hover {
-    .show-on-hover {
-      max-height: 50px;
-      padding: 5px;
-      margin-bottom: 0;
-      opacity: 1;
-      transform: translateY(0) !important;
-      pointer-events: auto;
-    }
-
-    & #zen-media-info-vbox label[overflow] {
-      animation: zen-back-and-forth-text 10s infinite ease-in-out;
-    }
-  }
-
   & #zen-media-focus-button::after {
     content: '';
     position: absolute;
@@ -150,6 +164,24 @@
     }
   }
 
+  transform: translateZ(calc(var(--index) * -90px)) translateY(calc(var(--index) * 20px));
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out;
+  position: relative;
+  z-index: -1;
+  opacity: 0.6;
+
+  &.zen-sidebar-toolbar:nth-last-child(2) {
+    transform: none;
+    z-index: 1;
+    opacity: 1;
+
+    #zen-media-controls-hbox {
+      opacity: 1;
+    }
+  }
+
   & > toolbaritem {
     --zen-media-control-bg: color-mix(
       in srgb,
@@ -157,8 +189,6 @@
       light-dark(white, black)
     );
     flex-grow: 1;
-    padding: 0;
-    transition: padding 0.3s ease-out;
     position: absolute;
     left: 0;
     bottom: 0;
@@ -167,6 +197,10 @@
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
     background-color: var(--zen-media-control-bg);
     width: 100%;
+    transition:
+      padding 0.3s ease-out,
+      transform 0.3s ease-out,
+      box-shadow 0.3s ease-out;
   }
 
   .show-on-hover {
@@ -190,19 +224,11 @@
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
-}
-
-#zen-media-controls-toolbar {
-  display: none;
-  animation: none;
-  transition: none;
 
   &:not([hidden]) {
     display: flex;
     height: 2.5rem;
     overflow: visible;
-    position: relative;
-    z-index: 2;
   }
 }
 
@@ -238,7 +264,6 @@
   overflow-x: hidden;
   overflow-x: visible;
   white-space: nowrap;
-  /* Overflow inner box shadow from the left to simulate overflow */
   mask-image: linear-gradient(to left, transparent, var(--zen-media-control-bg) 0.6em);
   min-width: 1px;
 
@@ -279,6 +304,7 @@
 }
 
 #zen-media-controls-hbox {
+  opacity: 0;
   align-items: flex-end;
   justify-content: space-between;
   max-width: 100%;
