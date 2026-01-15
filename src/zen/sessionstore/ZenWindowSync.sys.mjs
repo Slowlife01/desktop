@@ -40,6 +40,8 @@ const EVENTS = [
   "TabGroupRemoved",
   "TabGroupMoved",
 
+  "TabUngrouped",
+
   "ZenTabRemovedFromSplit",
   "ZenSplitViewTabsSplit",
 
@@ -132,7 +134,7 @@ class nsZenWindowSync {
   /**
    * @returns {Window|null} The first opened browser window, or null if none exist.
    */
-  get #firstSyncedWindow() {
+  get firstSyncedWindow() {
     for (let window of this.#browserWindows) {
       return window;
     }
@@ -455,8 +457,23 @@ class nsZenWindowSync {
       this.#maybeSyncAttributeChange(aOriginalItem, aTargetItem, "zen-workspace-id");
       this.#syncItemPosition(aOriginalItem, aTargetItem, aWindow);
     }
+    if (aOriginalItem.hasAttribute("zen-live-folder-item-id")) {
+      this.#maybeSyncAttributeChange(aOriginalItem, aTargetItem, "zen-live-folder-item-id");
+      this.#syncTabSubtitle(aOriginalItem, aTargetItem);
+    }
     if (gBrowser.isTab(aTargetItem)) {
       this.#maybeFlushTabState(aTargetItem);
+    }
+  }
+
+  #syncTabSubtitle(aOriginalItem, aTargetItem) {
+    const originalLabel = aOriginalItem.querySelector(".zen-tab-sublabel");
+    const targetLabel = aTargetItem.querySelector(".zen-tab-sublabel");
+    if (originalLabel && targetLabel) {
+      const args = originalLabel.getAttribute("data-l10n-args");
+      if (args) {
+        targetLabel.setAttribute("data-l10n-args", args);
+      }
     }
   }
 
@@ -1029,7 +1046,7 @@ class nsZenWindowSync {
       (tab) => !tab.hasAttribute("zen-empty-tab")
     );
     const selectedTab = aWindow.gBrowser.selectedTab;
-    let win = this.#firstSyncedWindow;
+    let win = this.firstSyncedWindow;
     const moveAllTabsToWindow = async (allowSelected = false) => {
       const { gBrowser, gZenWorkspaces } = win;
       win.focus();
@@ -1300,6 +1317,10 @@ class nsZenWindowSync {
 
   on_TabGroupUpdate(aEvent) {
     return this.#delegateGenericSyncEvent(aEvent, SYNC_FLAG_ICON | SYNC_FLAG_LABEL);
+  }
+
+  on_TabUngrouped() {
+    return Promise.resolve();
   }
 
   on_ZenTabRemovedFromSplit(aEvent) {

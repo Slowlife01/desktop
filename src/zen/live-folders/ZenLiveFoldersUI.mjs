@@ -1,0 +1,170 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  ZenLiveFoldersManager: "resource:///modules/zen/ZenLiveFoldersManager.sys.mjs",
+});
+
+class nsZenLiveFoldersUI {
+  init() {
+    const popup = window.document
+      .getElementById("context_zenLiveFolderOptions")
+      .querySelector("menupopup");
+
+    popup.addEventListener("command", (event) => {
+      const option = event.target;
+
+      const folderId = option.getAttribute("option-folder");
+      if (folderId) {
+        lazy.ZenLiveFoldersManager.getFolder(folderId).onOptionTrigger(option);
+      }
+    });
+  }
+
+  #applyMenuItemAttributes(menuItem, option, folderId) {
+    menuItem.setAttribute("data-l10n-id", option.l10nId);
+
+    if (option.checked !== undefined) {
+      menuItem.setAttribute("checked", option.checked);
+      menuItem.setAttribute("type", option.type ?? "checkbox");
+    }
+
+    if (option.l10nArgs) {
+      menuItem.setAttribute("data-l10n-args", JSON.stringify(option.l10nArgs));
+    }
+
+    menuItem.setAttribute("option-folder", folderId);
+    menuItem.setAttribute("option-key", option.key);
+    if (option.disabled) {
+      menuItem.setAttribute("disabled", "true");
+    }
+  }
+
+  buildContextMenu(folder) {
+    const optionsElement = document.getElementById("context_zenLiveFolderOptions");
+
+    let hidden = true;
+    if (folder.isLiveFolder) {
+      const popup = optionsElement.querySelector("menupopup");
+      const liveFolder = lazy.ZenLiveFoldersManager.getFolder(folder.id);
+
+      const MINUTE_MS = 60 * 1000;
+      const HOUR_MS = 60 * MINUTE_MS;
+
+      const intervals = [
+        { mins: 15 },
+        { mins: 30 },
+        { hours: 1 },
+        { hours: 2 },
+        { hours: 4 },
+        { hours: 8 },
+      ].map((entry) => {
+        const ms = "mins" in entry ? entry.mins * MINUTE_MS : entry.hours * HOUR_MS;
+
+        return {
+          ms,
+          l10nId:
+            "mins" in entry
+              ? "zen-live-folder-fetch-interval-mins"
+              : "zen-live-folder-fetch-interval-hours",
+          l10nArgs: entry,
+          type: "radio",
+          checked: liveFolder.state.interval === ms,
+        };
+      });
+
+      const contextMenuItems = [
+        [
+          {
+            key: "lastFetched",
+            l10nId: "zen-live-folder-last-fetched",
+            l10nArgs: { time: this.#timeAgo(liveFolder.state.lastFetched) },
+            disabled: true,
+          },
+          {
+            key: "setInterval",
+            l10nId: "zen-live-folder-option-fetch-interval",
+            options: intervals,
+          },
+          {
+            key: "refresh",
+            l10nId: "zen-live-folder-refresh",
+          },
+        ],
+        liveFolder.options,
+      ];
+
+      popup.innerHTML = "";
+      for (const options of contextMenuItems) {
+        if (popup.hasChildNodes()) {
+          popup.appendChild(document.createXULElement("menuseparator"));
+        }
+
+        for (const option of options) {
+          if (option.options) {
+            const menu = document.createXULElement("menu");
+            menu.setAttribute("data-l10n-id", option.l10nId);
+
+            menu.setAttribute("option-folder", folder.id);
+            menu.setAttribute("option-key", option.key);
+            if (option.disabled) {
+              menu.setAttribute("disabled", "true");
+            }
+
+            const subPopup = document.createXULElement("menupopup");
+            for (const subOption of option.options) {
+              const subMenuItem = document.createXULElement("menuitem");
+              this.#applyMenuItemAttributes(subMenuItem, subOption, folder.id);
+
+              if (subOption.value !== undefined) {
+                subMenuItem.setAttribute("option-value", subOption.value);
+              }
+
+              subPopup.appendChild(subMenuItem);
+            }
+
+            menu.appendChild(subPopup);
+            popup.appendChild(menu);
+            continue;
+          }
+
+          const menuItem = document.createXULElement("menuitem");
+          this.#applyMenuItemAttributes(menuItem, option, folder.id);
+          popup.appendChild(menuItem);
+        }
+      }
+
+      hidden = false;
+    }
+
+    optionsElement.hidden = hidden;
+    document.getElementById("live-folder-separator").hidden = hidden;
+  }
+
+  #timeAgo(date) {
+    const rtf = new Intl.RelativeTimeFormat(Services.locale.appLocaleAsBCP47, { numeric: "auto" });
+    const secondsDiff = (date - Date.now()) / 1000;
+    const absSeconds = Math.abs(secondsDiff);
+
+    const ranges = {
+      year: 31536000,
+      month: 2592000,
+      day: 86400,
+      hour: 3600,
+      minute: 60,
+      second: 1,
+    };
+
+    for (const [key, value] of Object.entries(ranges)) {
+      if (absSeconds >= value) {
+        return rtf.format(Math.round(secondsDiff / value), key);
+      }
+    }
+
+    return rtf.format(Math.round(secondsDiff), "second");
+  }
+}
+
+window.gZenLiveFoldersUI = new nsZenLiveFoldersUI();
