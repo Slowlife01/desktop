@@ -8,6 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ZenLiveFoldersManager: "resource:///modules/zen/ZenLiveFoldersManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   gWindowSyncEnabled: "resource:///modules/zen/ZenWindowSync.sys.mjs",
@@ -407,6 +408,7 @@ export class nsZenSessionManager {
       return;
     }
     this.#collectWindowData(windows);
+    lazy.ZenLiveFoldersManager.saveState();
     // This would save the data to disk asynchronously or when
     // quitting the app.
     this.#file.data = this.#sidebar;
