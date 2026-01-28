@@ -4,13 +4,12 @@
 
 import { nsZenLiveFolderProvider } from "resource:///modules/zen/ZenLiveFolder.sys.mjs";
 
-const lazy = {}
+const lazy = {};
 ChromeUtils.defineLazyGetter(
   lazy,
   "l10n",
   () => new Localization(["browser/zen-live-folders.ftl"])
 );
-
 
 export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
   static type = "rss";
@@ -142,18 +141,11 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     switch (key) {
       case "feedURL": {
         const input = { value: this.state.url ?? "" };
-        const [prompt] = await lazy.l10n.formatValues([
-          "zen-rss-live-folder-prompt-feed-url",
-        ]);
+        const [prompt] = await lazy.l10n.formatValues(["zen-rss-live-folder-prompt-feed-url"]);
 
-        const promptOk = Services.prompt.prompt(
-          this.manager.window,
-          prompt,
-          null,
-          input,
-          null,
-          { value: null }
-        );
+        const promptOk = Services.prompt.prompt(this.manager.window, prompt, null, input, null, {
+          value: null,
+        });
 
         if (promptOk) {
           const raw = (input.value ?? "").trim();
