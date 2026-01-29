@@ -64,15 +64,46 @@ class nsZenLiveFoldersManager {
     return this.liveFolders.get(id);
   }
 
-  createFolder(type) {
+  async createFolder(type) {
+    let ProviderClass = this.registry.get(type);
+    if (!ProviderClass) {
+      return -1;
+    }
+
+    let url;
+    let label;
+
+    switch (type) {
+      case "rss": {
+        url = await ProviderClass.promptForFeedUrl(this.window);
+        if (url) {
+          const metadata = await ProviderClass.getMetadata(url);
+          label = metadata.label;
+        }
+        break;
+      }
+      case "github": {
+        label = "Pull Requests";
+      }
+    }
+
     const folder = this.window.gZenFolders.createFolder([], {
+      label,
       isLiveFolder: true,
       renameFolder: true,
     });
 
-    let ProviderClass = this.registry.get(type);
+    if (type === "github") {
+      this.window.gZenFolders.setFolderUserIcon(
+        folder,
+        "chrome://browser/content/zen-images/favicons/github.svg"
+      );
+    }
+
     const config = {
-      state: this.#applyDefaultStateValues({}),
+      state: this.#applyDefaultStateValues({
+        url,
+      }),
     };
 
     let liveFolder = new ProviderClass({
@@ -241,6 +272,9 @@ class nsZenLiveFoldersManager {
         });
         // createLazyBrowser can't be pinned by default
         this.window.gBrowser.pinTab(tab);
+        if (item.icon) {
+          this.window.gBrowser.setIcon(tab, item.icon);
+        }
         tab.setAttribute("zen-live-folder-item-id", this.#makeCompositeId(liveFolder.id, item.id));
         if (item.subtitle) {
           const label = tab.querySelector(".zen-tab-sublabel");
