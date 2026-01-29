@@ -60,3 +60,9 @@ zen-rss-live-folder-prompt-feed-url = Please enter the feed URL
 
 zen-rss-live-folder-option-item-limit-num =
     .label = { $limit } items
+
+zen-rss-live-folder-fetch-error =
+    .label = Failed to fetch the feed
+
+zen-rss-live-folder-feed-url-unspecified =
+    .tooltiptext = Feed URL unspecified

@@ -459,6 +459,7 @@ class nsZenWindowSync {
     }
     if (aOriginalItem.hasAttribute("zen-live-folder-item-id")) {
       this.#maybeSyncAttributeChange(aOriginalItem, aTargetItem, "zen-live-folder-item-id");
+      this.#maybeSyncAttributeChange(aOriginalItem, aTargetItem, "zen-show-sublabel");
       this.#syncTabSubtitle(aOriginalItem, aTargetItem);
     }
     if (gBrowser.isTab(aTargetItem)) {

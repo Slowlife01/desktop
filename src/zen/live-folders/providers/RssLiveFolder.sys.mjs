@@ -31,7 +31,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     try {
       const response = await this.fetch(this.state.url);
       if (!response.ok) {
-        return [];
+        return [{ error: "Failed to fetch" }];
       }
 
       const text = await response.text();
@@ -70,7 +70,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
 
       return items;
     } catch (e) {
-      return [];
+      return [{ error: "Failed to fetch" }];
     }
   }
 
@@ -78,12 +78,14 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     const entries = [10, 20, 30];
     return entries.map((entry) => {
       return {
+        type: "radio",
+        key: "maxItems",
+        value: entry,
+
         l10nId: "zen-rss-live-folder-option-item-limit-num",
         l10nArgs: { limit: entry },
-        key: "maxItems",
+
         checked: this.state.maxItems === entry,
-        value: entry,
-        type: "radio",
       };
     });
   }
@@ -128,6 +130,59 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     ];
   }
 
+  // static so it can be easily accessed by the manager without having to create the live folder first
+  static async getMetadata(url, fetchFn = fetch) {
+    try {
+      const response = await fetchFn(url);
+      if (!response.ok) {
+        return { label: "" };
+      }
+
+      const text = await response.text();
+      const doc = new DOMParser().parseFromString(text, "text/xml");
+
+      const isAtom = doc.querySelector("feed") !== null;
+      const title = (
+        isAtom
+          ? doc.querySelector("feed > title")?.textContent
+          : doc.querySelector("rss > channel > title, channel > title")?.textContent
+      )?.trim();
+
+      return { label: title || "" };
+    } catch (e) {
+      return { label: "" };
+    }
+  }
+
+  static async promptForFeedUrl(window, initialUrl = "") {
+    const input = { value: initialUrl ?? "" };
+    const [prompt] = await lazy.l10n.formatValues(["zen-rss-live-folder-prompt-feed-url"]);
+    const promptOk = Services.prompt.prompt(window, prompt, null, input, null, {
+      value: null,
+    });
+
+    if (!promptOk) {
+      return null;
+    }
+
+    const raw = (input.value ?? "").trim();
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        throw new Error();
+      }
+      return parsed.href;
+    } catch {
+      Services.prompt.alert(window, null, "Invalid URL. Please enter a valid http(s) URL.");
+    }
+
+    return null;
+  }
+
+  async getMetadata() {
+    return nsRssLiveFolderProvider.getMetadata(this.state.url, this.fetch.bind(this));
+  }
+
   async onOptionTrigger(option) {
     super.onOptionTrigger(option);
 
@@ -140,29 +195,10 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
 
     switch (key) {
       case "feedURL": {
-        const input = { value: this.state.url ?? "" };
-        const [prompt] = await lazy.l10n.formatValues(["zen-rss-live-folder-prompt-feed-url"]);
-
-        const promptOk = Services.prompt.prompt(this.manager.window, prompt, null, input, null, {
-          value: null,
-        });
-
-        if (promptOk) {
-          const raw = (input.value ?? "").trim();
-          try {
-            const parsed = new URL(raw);
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-              throw new Error();
-            }
-            this.state.url = parsed.href;
-            this.refresh();
-          } catch {
-            Services.prompt.alert(
-              this.manager.window,
-              null,
-              "Invalid URL. Please enter a valid http(s) URL."
-            );
-          }
+        const url = await nsRssLiveFolderProvider.promptForFeedUrl(this.manager.window);
+        if (url) {
+          this.state.url = url;
+          this.refresh();
         }
         break;
       }
