@@ -41,6 +41,18 @@ zen-live-folder-fetch-interval-hours =
       *[other] { $hours } hours
     }
 
+zen-rss-live-folder-option-time-range =
+    .label = Time Range
+
+zen-live-folder-time-range-all =
+    .label = All Time
+
+zen-live-folder-time-range-hours =
+    .label = { $hours ->
+      [one] Last hour
+      *[other] Last { $hours } hours
+    }
+
 zen-rss-live-folder-option-item-limit =
     .label = Item Limit
 
