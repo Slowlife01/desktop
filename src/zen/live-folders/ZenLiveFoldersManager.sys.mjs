@@ -10,6 +10,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "l10n",
+  () => new Localization(["browser/zen-live-folders.ftl"])
+);
+
 const DEFAULT_FETCH_INTERVAL = 30 * 60 * 1000;
 const providers = [
   {
@@ -83,7 +89,8 @@ class nsZenLiveFoldersManager {
         break;
       }
       case "github": {
-        label = "Pull Requests";
+        [label] = await lazy.l10n.formatValues(["zen-github-pull-requests"]);
+        break;
       }
     }
 
@@ -279,7 +286,7 @@ class nsZenLiveFoldersManager {
         if (item.subtitle) {
           const label = tab.querySelector(".zen-tab-sublabel");
 
-          tab.setAttribute("zen-show-sublabel", "true");
+          tab.setAttribute("zen-show-sublabel", item.subtitle);
           this.window.document.l10n.setArgs(label, {
             tabSubtitle: item.subtitle,
           });
@@ -292,6 +299,8 @@ class nsZenLiveFoldersManager {
     lazy.setTimeout(() => {
       folder.addTabs(newItems);
     }, 0);
+
+    this.saveState();
   }
 
   // Helpers
@@ -355,11 +364,35 @@ class nsZenLiveFoldersManager {
         itemId.startsWith(prefix)
       );
 
+      const folder = this.#getFolderForLiveFolder(liveFolder);
+      if (!folder) {
+        continue;
+      }
+
+      const itemLabels = [];
+      for (const tab of folder.tabs) {
+        const itemId = tab.getAttribute("zen-live-folder-item-id");
+        if (!itemId) {
+          continue;
+        }
+
+        const label = tab.getAttribute("zen-show-sublabel");
+        if (!label) {
+          continue;
+        }
+
+        itemLabels.push({
+          itemId,
+          label,
+        });
+      }
+
       data.push({
         id,
         type: liveFolder.constructor.type,
         data: liveFolder.serialize(),
         dismissedItems,
+        itemLabels,
       });
     }
 

@@ -42,6 +42,36 @@ class nsZenLiveFoldersUI {
     }
   }
 
+  #appendOptions(parentPopup, options, folderId) {
+    for (const option of options) {
+      if (option.type === "separator") {
+        parentPopup.appendChild(document.createXULElement("menuseparator"));
+        continue;
+      }
+
+      if (option.options) {
+        const menu = document.createXULElement("menu");
+        this.#applyMenuItemAttributes(menu, option, folderId);
+
+        const subPopup = document.createXULElement("menupopup");
+        this.#appendOptions(subPopup, option.options, folderId);
+
+        menu.appendChild(subPopup);
+        parentPopup.appendChild(menu);
+        continue;
+      }
+
+      const menuItem = document.createXULElement("menuitem");
+      this.#applyMenuItemAttributes(menuItem, option, folderId);
+
+      if (option.value !== undefined) {
+        menuItem.setAttribute("option-value", option.value);
+      }
+
+      parentPopup.appendChild(menuItem);
+    }
+  }
+
   buildContextMenu(folder) {
     const optionsElement = document.getElementById("context_zenLiveFolderOptions");
 
@@ -53,89 +83,56 @@ class nsZenLiveFoldersUI {
       const MINUTE_MS = 60 * 1000;
       const HOUR_MS = 60 * MINUTE_MS;
 
-      const intervals = [
-        { mins: 15 },
-        { mins: 30 },
-        { hours: 1 },
-        { hours: 2 },
-        { hours: 4 },
-        { hours: 8 },
-      ].map((entry) => {
+      let intervals = [];
+      for (let mins = 15; mins <= 30; mins *= 2) {
+        intervals.push({ mins });
+      }
+
+      for (let hours = 1; hours <= 8; hours *= 2) {
+        intervals.push({ hours });
+      }
+
+      intervals = intervals.map((entry) => {
         const ms = "mins" in entry ? entry.mins * MINUTE_MS : entry.hours * HOUR_MS;
 
         return {
-          ms,
           l10nId:
             "mins" in entry
               ? "zen-live-folder-fetch-interval-mins"
               : "zen-live-folder-fetch-interval-hours",
           l10nArgs: entry,
+
           type: "radio",
           checked: liveFolder.state.interval === ms,
+
+          key: "setInterval",
+          value: ms,
         };
       });
 
       const contextMenuItems = [
-        [
-          {
-            key: "lastFetched",
-            l10nId: "zen-live-folder-last-fetched",
-            l10nArgs: { time: this.#timeAgo(liveFolder.state.lastFetched) },
-            disabled: true,
-          },
-          {
-            key: "setInterval",
-            l10nId: "zen-live-folder-option-fetch-interval",
-            options: intervals,
-          },
-          {
-            key: "refresh",
-            l10nId: "zen-live-folder-refresh",
-          },
-        ],
-        liveFolder.options,
+        {
+          key: "lastFetched",
+          l10nId: "zen-live-folder-last-fetched",
+          l10nArgs: { time: this.#timeAgo(liveFolder.state.lastFetched) },
+          disabled: true,
+        },
+        {
+          key: "setInterval",
+          l10nId: "zen-live-folder-option-fetch-interval",
+          options: intervals,
+        },
+        {
+          key: "refresh",
+          l10nId: "zen-live-folder-refresh",
+        },
+        { type: "separator" },
+        ...liveFolder.options,
       ];
 
       popup.innerHTML = "";
-      for (const options of contextMenuItems) {
-        if (popup.hasChildNodes()) {
-          popup.appendChild(document.createXULElement("menuseparator"));
-        }
 
-        for (const option of options) {
-          if (option.options) {
-            const menu = document.createXULElement("menu");
-            menu.setAttribute("data-l10n-id", option.l10nId);
-
-            menu.setAttribute("option-folder", folder.id);
-            menu.setAttribute("option-key", option.key);
-            if (option.disabled) {
-              menu.setAttribute("disabled", "true");
-            }
-
-            const subPopup = document.createXULElement("menupopup");
-            for (const subOption of option.options) {
-              const subMenuItem = document.createXULElement("menuitem");
-              this.#applyMenuItemAttributes(subMenuItem, subOption, folder.id);
-
-              if (subOption.value !== undefined) {
-                subMenuItem.setAttribute("option-value", subOption.value);
-              }
-
-              subPopup.appendChild(subMenuItem);
-            }
-
-            menu.appendChild(subPopup);
-            popup.appendChild(menu);
-            continue;
-          }
-
-          const menuItem = document.createXULElement("menuitem");
-          this.#applyMenuItemAttributes(menuItem, option, folder.id);
-          popup.appendChild(menuItem);
-        }
-      }
-
+      this.#appendOptions(popup, contextMenuItems, folder.id);
       hidden = false;
     }
 

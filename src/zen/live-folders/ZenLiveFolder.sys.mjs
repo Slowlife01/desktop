@@ -15,19 +15,9 @@ export class nsZenLiveFolderProvider {
   #idleCallbackHandle = null;
   state = {};
 
-  constructor({ id, state, manager }) {
+  constructor({ id, manager }) {
     this.id = id;
     this.manager = manager;
-    this.state = state;
-
-    if (!this.state.options) {
-      this.state.options = {};
-      for (const option of this.options) {
-        this.state.options[option.key] = option.value;
-      }
-
-      this.requestSave();
-    }
   }
 
   fetchItems() {
