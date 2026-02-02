@@ -20,8 +20,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
 
     this.state.url = state.url;
     this.state.interval = state.interval;
-    this.state.maxItems = state.maxItems ?? 20;
-    this.state.timeRange = state.timeRange ?? 2 * 60 * 60 * 1000;
+    this.state.maxItems = state.maxItems ?? 25;
     this.state.lastFetched = state.lastFetched;
 
     this.parser = new DOMParser();
@@ -37,13 +36,12 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
       const text = await response.text();
       const doc = this.parser.parseFromString(text, "text/xml");
 
-      const cutoffTime = Date.now() - this.state.timeRange;
-
       const isAtom = doc.querySelector("feed > entry") !== null;
       const selector = isAtom ? "entry" : "item";
       const elements = doc.querySelectorAll(selector);
 
       const items = Array.from(elements)
+        .slice(0, this.state.maxItems)
         .map((item) => {
           const title = item.querySelector("title")?.textContent || "";
 
@@ -54,18 +52,9 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
           const guid = item.querySelector(isAtom ? "id" : "guid")?.textContent;
           const id = guid || url;
 
-          const dateStr = item.querySelector(isAtom ? "updated" : "pubDate")?.textContent;
-          const date = dateStr ? new Date(dateStr) : null;
-
-          return { title, url, id, date };
+          return { title, url, id };
         })
-        .filter((item) => {
-          if (!item.url || !item.date) {
-            return false;
-          }
-          return !isNaN(item.date.getTime()) && item.date.getTime() >= cutoffTime;
-        })
-        .slice(0, this.state.maxItems)
+        .filter((item) => item.url)
         .map(({ title, url, id }) => ({ title, url, id }));
 
       return items;
@@ -75,7 +64,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
   }
 
   _buildItemLimitOptions() {
-    const entries = [10, 20, 30];
+    const entries = [10, 25, 50];
     return entries.map((entry) => {
       return {
         type: "radio",
@@ -90,27 +79,6 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     });
   }
 
-  _buildTimeRangeOptions() {
-    const MINUTE_MS = 60 * 1000;
-    const HOUR_MS = 60 * MINUTE_MS;
-
-    const entries = [1, 2, 6, 12, 24];
-    return entries.map((entry) => {
-      const ms = entry * HOUR_MS;
-
-      return {
-        type: "radio",
-        key: "timeRange",
-        value: ms,
-
-        l10nId: "zen-live-folder-time-range-hours",
-        l10nArgs: { hours: entry },
-
-        checked: this.state.timeRange === ms,
-      };
-    });
-  }
-
   get options() {
     return [
       {
@@ -121,11 +89,6 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
         l10nId: "zen-rss-live-folder-option-item-limit",
         key: "maxItems",
         options: this._buildItemLimitOptions(),
-      },
-      {
-        l10nId: "zen-rss-live-folder-option-time-range",
-        key: "timeRange",
-        options: this._buildTimeRangeOptions(),
       },
     ];
   }
@@ -202,8 +165,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
         }
         break;
       }
-      case "maxItems":
-      case "timeRange": {
+      case "maxItems": {
         const parsedValue = Number.parseInt(value);
         if (parsedValue) {
           this.state[key] = parsedValue;
