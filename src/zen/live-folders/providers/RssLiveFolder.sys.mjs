@@ -35,14 +35,13 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
       }
 
       const text = await response.text();
-      const doc = this.parser.parseFromString(text, "text/xml");
+      const doc = new DOMParser().parseFromString(text, "text/xml");
+
+      const cutoffTime = Date.now() - this.state.timeRange;
 
       const isAtom = doc.querySelector("feed > entry") !== null;
       const selector = isAtom ? "entry" : "item";
       const elements = doc.querySelectorAll(selector);
-
-      // Only apply time filtering if timeRange > 0
-      const cutoffTime = this.state.timeRange > 0 ? Date.now() - this.state.timeRange : 0;
 
       const items = Array.from(elements)
         .map((item) => {
@@ -61,12 +60,13 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
           return { title, url, id, date };
         })
         .filter((item) => {
-          if (!item.url) {
+          if (!item.url || !item.date) {
             return false;
           }
-          return this.state.timeRange === 0
-            ? true
-            : item.date && !isNaN(item.date.getTime()) && item.date.getTime() >= cutoffTime;
+          if (!this.state.timeRange) {
+            return true;
+          }
+          return !isNaN(item.date.getTime()) && item.date.getTime() >= cutoffTime;
         })
         .slice(0, this.state.maxItems)
         .map(({ title, url, id }) => ({ title, url, id }));
@@ -90,34 +90,59 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
 
         checked: this.state.maxItems === entry,
       };
+  _buildRadioOption({ key, value, l10nId, l10nArgs }) {
+    return {
+      type: "radio",
+      key,
+      value,
+      l10nId,
+      l10nArgs,
+      checked: this.state[key] === value,
+    };
+  }
+
+  _buildItemLimitOptions() {
+    const entries = [10, 20, 30];
+    return entries.map((entry) => {
+      return this._buildRadioOption({
+        key: "maxItems",
+        value: entry,
+        l10nId: "zen-rss-live-folder-option-item-limit-num",
+        l10nArgs: { limit: entry },
+      });
     });
   }
 
   _buildTimeRangeOptions() {
     const HOUR_MS = 60 * 60 * 1000;
+    const DAY_MS = 24 * HOUR_MS;
 
     const entries = [
-      { hours: 0, l10nId: "zen-live-folder-time-range-all" }, // All time
-      { hours: 1 },
-      { hours: 2 },
-      { hours: 6 },
-      { hours: 12 },
-      { hours: 24 },
+      { hours: 1, ms: 1 * HOUR_MS },
+      { hours: 6, ms: 6 * HOUR_MS },
+      { hours: 12, ms: 12 * HOUR_MS },
+      { hours: 24, ms: 24 * HOUR_MS },
+      { days: 3, ms: 3 * DAY_MS },
     ];
-    return entries.map((entry) => {
-      const ms = entry.hours * HOUR_MS;
 
-      return {
-        type: "radio",
+    return [
+      this._buildRadioOption({
         key: "timeRange",
-        value: ms,
+        value: 0,
+        l10nId: "zen-live-folder-time-range-all-time",
+      }),
+      { type: "separator" },
+      ...entries.map((entry) => {
+        const isDays = "days" in entry;
 
-        l10nId: entry.l10nId || "zen-live-folder-time-range-hours",
-        l10nArgs: entry.hours > 0 ? { hours: entry.hours } : {},
-
-        checked: this.state.timeRange === ms,
-      };
-    });
+        return this._buildRadioOption({
+          key: "timeRange",
+          value: entry.ms,
+          l10nId: isDays ? "zen-live-folder-time-range-days" : "zen-live-folder-time-range-hours",
+          l10nArgs: isDays ? { days: entry.days } : { hours: entry.hours },
+        });
+      }),
+    ];
   }
 
   get options() {
@@ -214,7 +239,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
       case "maxItems":
       case "timeRange": {
         const parsedValue = Number.parseInt(value);
-        if (parsedValue >= 0) {
+        if (!Number.isNaN(parsedValue)) {
           this.state[key] = parsedValue;
         }
         break;

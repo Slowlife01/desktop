@@ -44,13 +44,19 @@ zen-live-folder-fetch-interval-hours =
 zen-rss-live-folder-option-time-range =
     .label = Time Range
 
-zen-live-folder-time-range-all =
-    .label = All Time
-
 zen-live-folder-time-range-hours =
     .label = { $hours ->
       [one] Last hour
       *[other] Last { $hours } hours
+    }
+
+zen-live-folder-time-range-all-time =
+    .label = All time
+
+zen-live-folder-time-range-days =
+    .label = { $days ->
+      [one] Last day
+      *[other] Last { $days } days
     }
 
 zen-rss-live-folder-option-item-limit =
@@ -69,3 +75,14 @@ zen-rss-live-folder-fetch-error =
 
 zen-rss-live-folder-feed-url-unspecified =
     .tooltiptext = Feed URL unspecified
+
+zen-github-live-folder-option-repo-filter =
+    .label = Repositories
+
+zen-github-live-folder-option-repo =
+    .label = { $repo }
+
+zen-github-pull-requests = Pull Requests
+
+zen-github-live-folder-option-repo-list-note =
+    .label = This list is generated based on your currently active pull requests.

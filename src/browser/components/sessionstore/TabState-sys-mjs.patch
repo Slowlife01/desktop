@@ -1,8 +1,8 @@
 diff --git a/browser/components/sessionstore/TabState.sys.mjs b/browser/components/sessionstore/TabState.sys.mjs
-index 82721356d191055bec0d4b0ca49e481221988801..dcebb7a3dd69b3d6d07b1a39ba22b34b8c3372ce 100644
+index 82721356d191055bec0d4b0ca49e481221988801..e01904a6ea73e068c236adecbac6a97adedb2bd3 100644
 --- a/browser/components/sessionstore/TabState.sys.mjs
 +++ b/browser/components/sessionstore/TabState.sys.mjs
-@@ -85,7 +85,29 @@ class _TabState {
+@@ -85,7 +85,25 @@ class _TabState {
        tabData.groupId = tab.group.id;
      }
  
@@ -20,10 +20,6 @@ index 82721356d191055bec0d4b0ca49e481221988801..dcebb7a3dd69b3d6d07b1a39ba22b34b
 +    tabData._zenPinnedInitialState = tab._zenPinnedInitialState;
 +    tabData._zenIsActiveTab = tab._zenContentsVisible;
 +    tabData.zenLiveFolderItemId = tab.getAttribute("zen-live-folder-item-id");
-+    tabData.zenShowSublabel = tab.hasAttribute("zen-show-sublabel");
-+    if (tabData.zenShowSublabel === true) {
-+      tabData.subLabel = tab.querySelector(".zen-tab-sublabel")?.getAttribute("data-l10n-args");
-+    }
 +
      tabData.searchMode = tab.ownerGlobal.gURLBar.getSearchMode(browser, true);
 +    if (tabData.searchMode?.source === tab.ownerGlobal.UrlbarUtils.RESULT_SOURCE.ZEN_ACTIONS) {

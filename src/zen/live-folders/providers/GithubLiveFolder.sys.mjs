@@ -14,9 +14,14 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
     this.state.url = "https://github.com/issues/assigned";
     this.state.interval = state.interval;
     this.state.lastFetched = state.lastFetched;
-    this.state.options = state.options;
 
-    this.parser = new DOMParser();
+    this.ensureState();
+  }
+
+  ensureState() {
+    this.state.options ??= {};
+    this.state.options.repoExcludes ??= new Set(this.state.options.repoExcludes ?? []);
+    this.state.repos ??= new Set(this.state.repos ?? []);
   }
 
   async fetchItems() {
@@ -40,12 +45,13 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
       }
 
       const text = await response.text();
-      const document = this.parser.parseFromString(text, "text/html");
+      const document = new DOMParser().parseFromString(text, "text/html");
 
       const issues = document.querySelectorAll(
         "div[class^=IssueItem-module__defaultRepoContainer]"
       );
       const items = [];
+      const activeRepos = new Set();
 
       if (issues.length) {
         const authors = document.querySelectorAll("a[class^=IssueItem-module__authorCreatedLink]");
@@ -58,6 +64,11 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
           const title = titles[i]?.textContent;
           const issueUrl = links[i]?.href;
 
+          const repo = rawRepo.textContent?.trim();
+          if (repo) {
+            activeRepos.add(repo);
+          }
+
           const number = rawNumber.textContent.match(/[0-9]+/)[0];
 
           items.push({
@@ -65,10 +76,12 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
             subtitle: author,
             icon: "chrome://browser/content/zen-images/favicons/github.svg",
             url: `https://github.com/${issueUrl}`,
-            id: `${rawRepo.textContent}#${number}`,
+            id: `${repo}#${number}`,
           });
         }
       }
+
+      this.state.repos = activeRepos;
 
       return items;
     } catch {}
@@ -77,6 +90,8 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
   }
 
   #buildSearchOptions() {
+    this.ensureState();
+
     let searchParams = new URLSearchParams();
     const options = [
       {
@@ -113,6 +128,13 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
       ],
     ];
 
+    const excluded = this.state.options.repoExcludes;
+    for (const repo of excluded) {
+      if (repo && repo.trim()) {
+        options.push({ value: `-repo:${repo.trim()}`, enabled: true });
+      }
+    }
+
     let outputString = "";
     for (const option of options) {
       if (Array.isArray(option)) {
@@ -133,6 +155,31 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
   }
 
   get options() {
+    this.ensureState();
+
+    const excluded = this.state.options.repoExcludes;
+    const repoOptions = Array.from(this.state.repos.union(excluded))
+      .sort((a, b) => a.localeCompare(b))
+      .map((repo) => ({
+        l10nId: "zen-github-live-folder-option-repo",
+        l10nArgs: { repo },
+
+        key: "repoExclude",
+        value: repo,
+
+        type: "checkbox",
+        checked: !excluded.has(repo),
+      }));
+
+    if (repoOptions.length) {
+      repoOptions.push({ type: "separator" });
+    }
+
+    repoOptions.push({
+      l10nId: "zen-github-live-folder-option-repo-list-note",
+      disabled: true,
+    });
+
     return [
       {
         l10nId: "zen-github-live-folder-option-author-self",
@@ -149,25 +196,57 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
         key: "reviewRequested",
         checked: this.state.options.reviewRequested ?? false,
       },
+      { type: "separator" },
+      {
+        l10nId: "zen-github-live-folder-option-repo-filter",
+        key: "repoExclude",
+        options: repoOptions,
+      },
     ];
   }
 
   onOptionTrigger(option) {
     super.onOptionTrigger(option);
 
-    const checked = option.getAttribute("checked") === "true";
     const key = option.getAttribute("option-key");
+    const checked = option.getAttribute("checked") === "true";
     if (!this.options.some((x) => x.key === key)) {
       return;
     }
 
-    this.state.options[key] = checked;
+    if (key === "repoExclude") {
+      const repo = option.getAttribute("option-value");
+      if (!repo) {
+        return;
+      }
+
+      const excluded = this.state.options.repoExcludes;
+      if (checked) {
+        excluded.delete(repo);
+      } else {
+        excluded.add(repo);
+      }
+
+      this.state.options.repoExcludes = excluded;
+    } else {
+      this.state.options[key] = checked;
+    }
+
     this.requestSave();
   }
 
   serialize() {
+    this.ensureState();
+
     return {
-      state: this.state,
+      state: {
+        ...this.state,
+        repos: Array.from(this.state.repos),
+        options: {
+          ...this.state.options,
+          repoExcludes: Array.from(this.state.options.repoExcludes),
+        },
+      },
     };
   }
 }

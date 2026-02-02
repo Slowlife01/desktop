@@ -8,6 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ZenLiveFoldersManager: "resource:///modules/zen/ZenLiveFoldersManager.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   gWindowSyncEnabled: "resource:///modules/zen/ZenWindowSync.sys.mjs",
@@ -163,6 +164,21 @@ export class nsZenSessionManager {
         this.log("Recovered recovery data from sessionstore-backups");
       } catch {
         /* ignore errors reading recovery data */
+      }
+      if (!data.recoverYData) {
+        try {
+          data.recoveryData = await IOUtils.readJSON(
+            PathUtils.join(
+              Services.dirsvc.get("ProfD", Ci.nsIFile).path,
+              "sessionstore-backups",
+              "recovery.jsonlz4"
+            ),
+            { decompress: true }
+          );
+          this.log("Recovered recovery data from sessionstore-backups");
+        } catch {
+          /* ignore errors reading recovery data */
+        }
       }
       this._migrationData = data;
     } catch {
@@ -392,6 +408,7 @@ export class nsZenSessionManager {
       return;
     }
     this.#collectWindowData(windows);
+    lazy.ZenLiveFoldersManager.saveState();
     // This would save the data to disk asynchronously or when
     // quitting the app.
     this.#file.data = this.#sidebar;
