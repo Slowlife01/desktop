@@ -17,7 +17,6 @@ ChromeUtils.defineLazyGetter(
 
 export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
   static type = "rss";
-  state = {};
 
   constructor({ id, state, manager }) {
     super({ id, state, manager });
@@ -25,9 +24,6 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
     this.state.url = state.url;
     this.state.maxItems = state.maxItems ?? 10;
     this.state.timeRange = state.timeRange ?? 0;
-
-    this.state.interval = state.interval;
-    this.state.lastFetched = state.lastFetched;
   }
 
   async fetchItems() {

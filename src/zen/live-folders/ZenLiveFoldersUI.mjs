@@ -194,21 +194,23 @@ class nsZenLiveFoldersUI {
     const absSeconds = Math.abs(secondsDiff);
 
     const ranges = {
-      year: 31536000,
-      month: 2592000,
       day: 86400,
       hour: 3600,
       minute: 60,
       second: 1,
     };
 
-    for (const [key, value] of Object.entries(ranges)) {
-      if (absSeconds >= value) {
-        return rtf.format(Math.round(secondsDiff / value), key);
+    if (Number.isFinite(secondsDiff)) {
+      for (const [key, value] of Object.entries(ranges)) {
+        if (absSeconds >= value) {
+          return rtf.format(Math.round(secondsDiff / value), key);
+        }
       }
+
+      return rtf.format(Math.round(secondsDiff), "second");
     }
 
-    return rtf.format(Math.round(secondsDiff), "second");
+    return "-";
   }
 }
 
