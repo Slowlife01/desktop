@@ -17,6 +17,9 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
     this.state.options = state.options ?? {};
     this.state.repos = new Set(state.repos ?? []);
     this.state.options.repoExcludes = new Set(state.options.repoExcludes ?? []);
+
+    this.state.interval = state.interval;
+    this.state.lastFetched = state.lastFetched;
   }
 
   async fetchItems() {
