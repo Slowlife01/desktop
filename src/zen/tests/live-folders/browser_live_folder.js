@@ -41,7 +41,6 @@ describe("Zen Live Folder Scheduling", () => {
       state: {
         interval: INTERVAL,
         lastFetched: Date.now(),
-        options: {},
       },
     });
 
@@ -70,7 +69,6 @@ describe("Zen Live Folder Scheduling", () => {
       state: {
         interval: INTERVAL,
         lastFetched: Date.now() - 3600000,
-        options: {},
       },
     });
 

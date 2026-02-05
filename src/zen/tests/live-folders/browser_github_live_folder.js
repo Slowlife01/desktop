@@ -24,6 +24,7 @@ function getGithubProviderForTest(sandbox, customOptions = {}) {
     interval: 60,
     maxItems: 10,
     lastFetched: 0,
+    type: customOptions.type,
     options: defaultOptions,
   };
 
@@ -46,6 +47,7 @@ add_task(async function test_fetch_items_url_construction() {
     authorMe: true,
     assignedMe: false,
     reviewRequested: false,
+    type: "pull-requests",
   });
 
   instance.fetch.resolves({
@@ -156,8 +158,8 @@ add_task(async function test_fetch_network_error() {
 
   instance.fetch.rejects(new Error("Network down"));
 
-  const items = await instance.fetchItems();
-  Assert.deepEqual(items, [], "Should return empty array on exception");
+  const errorId = await instance.fetchItems();
+  Assert.equal(errorId, "zen-live-folder-failed-fetch", "Should return an error on failed fetch");
 
   sandbox.restore();
 });

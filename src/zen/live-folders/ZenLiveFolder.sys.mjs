@@ -23,9 +23,11 @@ export class nsZenLiveFolderProvider {
   #idleCallbackHandle = null;
   state = {};
 
-  constructor({ id, manager }) {
+  constructor({ id, manager, state }) {
     this.id = id;
     this.manager = manager;
+    this.state.interval = state.interval;
+    this.state.lastFetched = state.lastFetched;
   }
 
   fetchItems() {

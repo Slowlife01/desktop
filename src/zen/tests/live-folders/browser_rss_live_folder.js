@@ -227,7 +227,7 @@ add_task(async function test_fetch_network_error() {
   instance.fetch.rejects(new Error("Network down"));
 
   const items = await instance.fetchItems();
-  Assert.deepEqual(items, [], "Should return empty array on exception");
+  Assert.equal(items, "zen-live-folder-failed-fetch", "Should return an error on failed fetch");
 
   sandbox.restore();
 });
