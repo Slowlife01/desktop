@@ -189,6 +189,10 @@ class nsZenLiveFoldersUI {
   }
 
   #timeAgo(date) {
+    if (date === 0) {
+      return "-";
+    }
+
     const rtf = new Intl.RelativeTimeFormat(Services.locale.appLocaleAsBCP47, { numeric: "auto" });
     const secondsDiff = (date - Date.now()) / 1000;
     const absSeconds = Math.abs(secondsDiff);
