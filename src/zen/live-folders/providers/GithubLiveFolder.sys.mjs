@@ -29,32 +29,17 @@ export class nsGithubLiveFolderProvider extends nsZenLiveFolderProvider {
         return "zen-live-folder-github-no-filter";
       }
 
-      const cookies = Services.cookies
-        .getCookiesWithOriginAttributes("{}", "github.com")
-        .filter((c) => c.isSession);
-      const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-
       const searchParams = this.#buildSearchOptions();
       const url = `${this.state.url}?${searchParams}`;
-      const response = await this.fetch(url, {
-        headers: {
-          Cookie: cookieHeader,
-        },
-        credentials: "include",
-      });
 
-      if (!response.ok) {
-        // github.com/issues/assigned should always return 404 when no auth
-        if (response.status === 404) {
-          return "zen-live-folder-github-no-auth";
-        }
+      const { html, status } = await this.fetchHTML(url);
 
-        return "zen-live-folder-failed-fetch";
+      // Assume no auth
+      if (status === 404) {
+        return "zen-live-folder-github-no-auth";
       }
 
-      const text = await response.text();
-      const document = new DOMParser().parseFromString(text, "text/html");
-
+      const document = new DOMParser().parseFromString(html, "text/html");
       const issues = document.querySelectorAll(
         "div[class^=IssueItem-module__defaultRepoContainer]"
       );

@@ -531,8 +531,16 @@ class nsZenPinnedTabManager extends nsZenDOMOperatedFeature {
     const isVisible = contextTab.pinned && !contextTab.multiselected;
     const isEssential = contextTab.getAttribute("zen-essential");
     const zenAddEssential = document.getElementById("context_zen-add-essential");
-    document.getElementById("context_zen-reset-pinned-tab").hidden = !isVisible;
-    document.getElementById("context_zen-replace-pinned-url-with-current").hidden = !isVisible;
+    const zenResetPinnedTab = document.getElementById("context_zen-reset-pinned-tab");
+    const zenReplacePinnedUrl = document.getElementById(
+      "context_zen-replace-pinned-url-with-current"
+    );
+    [zenResetPinnedTab, zenReplacePinnedUrl].forEach((element) => {
+      if (element) {
+        element.hidden = !isVisible;
+        document.l10n.setArgs(element, { isEssential });
+      }
+    });
     zenAddEssential.hidden = isEssential || !!contextTab.group;
     document.l10n
       .formatValue("tab-context-zen-add-essential-badge", {
@@ -749,6 +757,15 @@ class nsZenPinnedTabManager extends nsZenDOMOperatedFeature {
 
   pinHasChangedUrl(tab) {
     if (tab.hasAttribute("zen-pinned-changed")) {
+      const showSublabel = tab.hasAttribute("zen-show-sublabel");
+      if (showSublabel) {
+        tab.removeAttribute("zen-show-sublabel");
+
+        const label = tab.querySelector(".zen-tab-sublabel");
+        window.document.l10n.setArgs(label, {
+          tabSubtitle: "zen-default-pinned",
+        });
+      }
       return;
     }
     if (tab.group?.hasAttribute("split-view-group")) {

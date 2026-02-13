@@ -1056,7 +1056,7 @@ window.gZenVerticalTabsManager = {
         if (!this._hasSetSingleToolbar) {
           height = AppConstants.platform == "macosx" ? 34 : 32;
         } else if (gURLBar.getAttribute("breakout-extend") !== "true") {
-          height = 40;
+          height = 38;
         }
         if (typeof height !== "undefined") {
           gURLBar.style.setProperty("--urlbar-height", `${height}px`);
@@ -1274,6 +1274,15 @@ window.gZenVerticalTabsManager = {
 
       if (shouldHide) {
         appContentNavbarContaienr.append(windowButtons);
+      }
+
+      if (
+        this._hasSetSingleToolbar &&
+        Services.prefs.getBoolPref("zen.view.overflow-webext-toolbar", true)
+      ) {
+        topButtons.setAttribute("addon-webext-overflowtarget", "zen-overflow-extensions-list");
+      } else {
+        topButtons.setAttribute("addon-webext-overflowtarget", "overflowed-extensions-list");
       }
 
       gZenCompactModeManager.updateCompactModeContext(isSingleToolbar);

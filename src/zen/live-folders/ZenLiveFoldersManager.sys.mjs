@@ -172,7 +172,7 @@ class nsZenLiveFoldersManager {
           return -1;
         }
 
-        const metadata = await ProviderClass.getMetadata(url);
+        const metadata = await ProviderClass.getMetadata(url, this.window);
         label = metadata.label;
         icon = metadata.icon;
 
@@ -330,9 +330,8 @@ class nsZenLiveFoldersManager {
     // Wait for tabs to (hopefully) be initialized on all windows
     lazy.setTimeout(() => {
       folder.addTabs(newItems);
+      this.saveState();
     }, 0);
-
-    this.saveState();
   }
 
   // Helpers
@@ -469,6 +468,11 @@ class nsZenLiveFoldersManager {
       }
 
       const folder = folders.find((x) => x.id === entry.id);
+      if (!folder) {
+        // No point restore if the live folder can't find its folder
+        continue;
+      }
+
       entry.data.state = this.#applyDefaultStateValues(entry.data.state);
       let liveFolder = new ProviderClass({
         id: entry.id,
@@ -477,9 +481,7 @@ class nsZenLiveFoldersManager {
       });
 
       this.liveFolders.set(entry.id, liveFolder);
-      if (folder) {
-        this.folderRefs.set(liveFolder, folder);
-      }
+      this.folderRefs.set(liveFolder, folder);
 
       liveFolder.tabsState = entry.tabsState;
       liveFolder.state.lastErrorId = entry.data.state.lastErrorId;

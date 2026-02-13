@@ -153,11 +153,11 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
   }
 
   // static so it can be easily accessed by the manager without having to create the live folder first
-  static async getMetadata(url, fetchFn = fetch) {
+  static async getMetadata(url, window) {
     try {
-      const response = await fetchFn(url);
+      const response = await fetch(url);
       if (!response.ok) {
-        return { label: "" };
+        return { label: "", icon: window.gZenEmojiPicker.getSVGURL("logo-rss.svg") };
       }
 
       const text = await response.text();
@@ -181,9 +181,12 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
         Services.io.newURI(faviconPageUrl)
       );
 
-      return { label: title || "", icon: favicon?.dataURI.spec };
+      return {
+        label: title || "",
+        icon: favicon?.dataURI.spec || window.gZenEmojiPicker.getSVGURL("logo-rss.svg"),
+      };
     } catch (e) {
-      return { label: "" };
+      return { label: "", icon: window.gZenEmojiPicker.getSVGURL("logo-rss.svg") };
     }
   }
 
@@ -217,7 +220,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
   }
 
   async getMetadata() {
-    return nsRssLiveFolderProvider.getMetadata(this.state.url, this.fetch.bind(this));
+    return nsRssLiveFolderProvider.getMetadata(this.state.url, this.manager.window);
   }
 
   async onOptionTrigger(option) {
@@ -232,7 +235,10 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
 
     switch (key) {
       case "feedURL": {
-        const url = await nsRssLiveFolderProvider.promptForFeedUrl(this.manager.window);
+        const url = await nsRssLiveFolderProvider.promptForFeedUrl(
+          this.manager.window,
+          this.state.url
+        );
         if (url) {
           this.state.url = url;
           this.refresh();
@@ -244,6 +250,7 @@ export class nsRssLiveFolderProvider extends nsZenLiveFolderProvider {
         const parsedValue = Number.parseInt(value);
         if (!Number.isNaN(parsedValue)) {
           this.state[key] = parsedValue;
+          this.refresh();
         }
         break;
       }
